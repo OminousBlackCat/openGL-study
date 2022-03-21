@@ -24,6 +24,13 @@ bool keys[1024];
 float deltaTime = 0.0f; // the render time cost = current frame rendered timestamp - lastFrame
 float lastFrame = 0.0f; //the timestamp of rendered last frame
 
+float lastCursorX = windowWidth / 2;
+float lastCursorY = windowHeight / 2;
+float yaw = -90.0f;
+float pitch = 0.0f;
+
+float viewFov = 45.0f;
+
 void resize_window(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
@@ -39,6 +46,34 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 			keys[key] = false;
 	}
 }
+
+void scrollCallbak(GLFWwindow* window, double xoffset, double yoffset) {
+	float sensitive = 0.1;
+	viewFov -= (float)yoffset * sensitive;
+	if (viewFov < 1.0f) {
+		viewFov = 1.0f;
+	}
+	if (viewFov > 45.0f) {
+		viewFov = 45.0f;
+	}
+}
+
+void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+	float xoffset = xpos - lastCursorX;
+	float yoffset = lastCursorY - ypos;
+	lastCursorX = xpos;
+	lastCursorY = ypos;
+
+	float sensitivity = 0.05f;
+	yaw += xoffset * sensitivity;
+	pitch += yoffset * sensitivity;
+
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+}
+
 
 int main() {
 	glfwInit();
@@ -63,6 +98,11 @@ int main() {
 
 	glfwSetKeyCallback(mainWindow, keyCallback);
 
+	glfwSetCursorPosCallback(mainWindow, mouseCallback);
+
+	glfwSetScrollCallback(mainWindow, scrollCallbak);
+
+	glfwSetInputMode(mainWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
 	
@@ -177,6 +217,7 @@ int main() {
 
 		glfwPollEvents();
 		
+		//process keyboard events
 		float cameraSpeed = 5.0f * deltaTime;
 		if (keys[GLFW_KEY_W]) {
 			position_camera += glm::normalize(relative_target) * cameraSpeed;
@@ -190,6 +231,13 @@ int main() {
 		if (keys[GLFW_KEY_D]) {
 			position_camera += glm::normalize(glm::cross(relative_target, world_up)) * cameraSpeed;
 		}
+		//process cursor events
+		glm::vec3 direction;
+		direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+		direction.y = sin(glm::radians(pitch));
+		direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+		relative_target = glm::normalize(direction);
+
 
 		// define matrix
 		glm::mat4 model = glm::mat4(1.0f);
@@ -199,7 +247,7 @@ int main() {
 		view = glm::lookAt(position_camera, position_camera + relative_target, world_up);
 
 		glm::mat4 projection = glm::mat4(1.0f);
-		projection = glm::perspective(45.0f, (float)windowWidth / (float)windowHeight, 1.0f, 100.0f);
+		projection = glm::perspective(viewFov, (float)windowWidth / (float)windowHeight, 1.0f, 100.0f);
 
 
 		unsigned int modelMat = glGetUniformLocation(shader.ID, "modelMat");
