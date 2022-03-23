@@ -7,6 +7,7 @@
 #include<glm/gtc/matrix_transform.hpp>
 #include<glm/gtc/type_ptr.hpp>
 #include<math.h>
+#include"camera.h"
 
 // force to using amd graphics card
 extern "C"
@@ -24,12 +25,15 @@ bool keys[1024];
 float deltaTime = 0.0f; // the render time cost = current frame rendered timestamp - lastFrame
 float lastFrame = 0.0f; //the timestamp of rendered last frame
 
-float lastCursorX = windowWidth / 2;
-float lastCursorY = windowHeight / 2;
+float lastX = windowWidth / 2.0f;
+float lastY = windowHeight / 2.0f;
+bool firstMouse = true;
 float yaw = -90.0f;
 float pitch = 0.0f;
 
 float viewFov = 45.0f;
+
+Camera myCamera = Camera(glm::vec3(0.0f, 0.0f, 5.0f));
 
 void resize_window(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -47,31 +51,30 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 	}
 }
 
+
 void scrollCallbak(GLFWwindow* window, double xoffset, double yoffset) {
-	float sensitive = 0.1;
-	viewFov -= (float)yoffset * sensitive;
-	if (viewFov < 1.0f) {
-		viewFov = 1.0f;
-	}
-	if (viewFov > 45.0f) {
-		viewFov = 45.0f;
-	}
+	myCamera.zoom(yoffset);
 }
 
-void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
-	float xoffset = xpos - lastCursorX;
-	float yoffset = lastCursorY - ypos;
-	lastCursorX = xpos;
-	lastCursorY = ypos;
+void mouseCallback(GLFWwindow* window, double xposIn, double yposIn) {
+	float xpos = static_cast<float>(xposIn);
+	float ypos = static_cast<float>(yposIn);
 
-	float sensitivity = 0.05f;
-	yaw += xoffset * sensitivity;
-	pitch += yoffset * sensitivity;
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
 
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+	lastX = xpos;
+	lastY = ypos;
+
+	myCamera.yawAndPitch(xoffset, yoffset);
 }
 
 
@@ -205,11 +208,6 @@ int main() {
 
 	float gree_axis_value = 1.0f;
 
-	// define look at matrix parm
-	glm::vec3 position_camera = glm::vec3(0.0f, 0.0f, 3.0f);
-	glm::vec3 relative_target = glm::vec3(0.0f, 0.0f, -3.0f);
-	glm::vec3 world_up = glm::vec3(0.0f, 1.0f, 0.0f);
-
 
 	while (!glfwWindowShouldClose(mainWindow)) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -220,34 +218,28 @@ int main() {
 		//process keyboard events
 		float cameraSpeed = 5.0f * deltaTime;
 		if (keys[GLFW_KEY_W]) {
-			position_camera += glm::normalize(relative_target) * cameraSpeed;
+			myCamera.movement(Camera::CAMERA_FORWARD, deltaTime);
 		}
 		if (keys[GLFW_KEY_S]) {
-			position_camera -= glm::normalize(relative_target) * cameraSpeed;
+			myCamera.movement(Camera::CAMERA_BACKWARD, deltaTime);
 		}
 		if (keys[GLFW_KEY_A]) {
-			position_camera += glm::normalize(glm::cross(world_up, relative_target)) * cameraSpeed;
+			myCamera.movement(Camera::CAMERA_LEFT, deltaTime);
 		}
 		if (keys[GLFW_KEY_D]) {
-			position_camera += glm::normalize(glm::cross(relative_target, world_up)) * cameraSpeed;
+			myCamera.movement(Camera::CAMERA_RIGHT, deltaTime);
 		}
-		//process cursor events
-		glm::vec3 direction;
-		direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-		direction.y = sin(glm::radians(pitch));
-		direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-		relative_target = glm::normalize(direction);
-
+		
 
 		// define matrix
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::rotate(model, 0.6f, glm::vec3(0.5f, 1.0f, 0.0f));
+		
 
 		glm::mat4 view = glm::mat4(1.0f);
-		view = glm::lookAt(position_camera, position_camera + relative_target, world_up);
+		view = myCamera.getLookAtMat();
 
 		glm::mat4 projection = glm::mat4(1.0f);
-		projection = glm::perspective(viewFov, (float)windowWidth / (float)windowHeight, 1.0f, 100.0f);
+		projection = glm::perspective(myCamera.zoomAngle, (float)windowWidth / (float)windowHeight, 1.0f, 100.0f);
 
 
 		unsigned int modelMat = glGetUniformLocation(shader.ID, "modelMat");
