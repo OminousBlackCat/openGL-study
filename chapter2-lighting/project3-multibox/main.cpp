@@ -314,32 +314,34 @@ int main() {
 		unsigned int modelMat = glGetUniformLocation(shader1.ID, "modelMat");
 		unsigned int viewMat = glGetUniformLocation(shader1.ID, "viewMat");
 		unsigned int projectionMat = glGetUniformLocation(shader1.ID, "projectionMat");
-		//unsigned int objectColor = glGetUniformLocation(shader1.ID, "objectColor");
-		//unsigned int lightColor = glGetUniformLocation(shader1.ID, "lightColor");
 		unsigned int viewPos = glGetUniformLocation(shader1.ID, "viewPos");
 
 		//设置物体的材质
-		unsigned int materialAmbient = glGetUniformLocation(shader1.ID, "material.ambient");
-		unsigned int materialDiffuse = glGetUniformLocation(shader1.ID, "material.diffuse");
-		unsigned int materialSpecular = glGetUniformLocation(shader1.ID, "material.specular");
 		unsigned int materialShininess = glGetUniformLocation(shader1.ID, "material.shininess");
-		glUniform3f(materialAmbient, 0.0f, 0.0f, 0.0f);
-		glUniform3f(materialDiffuse, 0.5f, 0.5f, 0.5f);
-		glUniform3f(materialSpecular, 1.0f, 1.0f, 1.0f);
-		glUniform1f(materialShininess, 16.0f);
+		glUniform1f(materialShininess, 32.0f);
 
 		//设置光源属性
-		unsigned int lightAmbient = glGetUniformLocation(shader1.ID, "light.ambient");
-		unsigned int lightDiffuse = glGetUniformLocation(shader1.ID, "light.diffuse");
-		unsigned int lightSpecular = glGetUniformLocation(shader1.ID, "light.specular");
-		unsigned int lightPosition = glGetUniformLocation(shader1.ID, "light.position");
-		glUniform3f(lightAmbient, 0.0f, 0.0f, 0.0f);
-		glUniform3f(lightDiffuse, 0.5f, 0.5f, 0.5f);
+		unsigned int lightAmbient = glGetUniformLocation(shader1.ID, "flashLight.ambient");
+		unsigned int lightDiffuse = glGetUniformLocation(shader1.ID, "flashLight.diffuse");
+		unsigned int lightSpecular = glGetUniformLocation(shader1.ID, "flashLight.specular");
+		unsigned int lightPosition = glGetUniformLocation(shader1.ID, "flashLight.position");
+		unsigned int lightDirection = glGetUniformLocation(shader1.ID, "flashLight.direction");
+		unsigned int flashCutOff = glGetUniformLocation(shader1.ID, "flashLight.cutOff");
+		unsigned int flashOutCutOff = glGetUniformLocation(shader1.ID, "flashLight.outerCutOff");
+		unsigned int constant = glGetUniformLocation(shader1.ID, "flashLight.attenuation_constant");
+		unsigned int liner = glGetUniformLocation(shader1.ID, "flashLight.attenuation_linear");
+		unsigned int quadratic = glGetUniformLocation(shader1.ID, "flashLight.attenuation_quadratic");
+		glUniform3f(lightAmbient, 0.01f, 0.01f, 0.01f);
+		glUniform3f(lightDiffuse, 0.7f, 0.7f, 0.7f);
 		glUniform3f(lightSpecular, 1.0f, 1.0f, 1.0f);
-		glUniform3f(lightPosition, light_postion.x, light_postion.y, light_postion.z);
+		glUniform3f(lightPosition, myCamera.position.x, myCamera.position.y, myCamera.position.z);
+		glUniform3f(lightDirection, myCamera.frontVec.x, myCamera.frontVec.y, myCamera.frontVec.z);
+		glUniform1f(flashCutOff, 0.98f);
+		glUniform1f(flashOutCutOff, 0.94f);
+		glUniform1f(constant, 1.0f);
+		glUniform1f(liner, 0.14f);
+		glUniform1f(quadratic, 0.07f);
 
-		//glUniform3f(objectColor, 1.0f, 1.0f, 1.0f);
-		//glUniform3f(lightColor, 1.0f, 1.0f, 1.0f);
 		glUniform3f(viewPos, myCamera.position.x, myCamera.position.y, myCamera.position.z);
 		glUniformMatrix4fv(viewMat, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projectionMat, 1, GL_FALSE, glm::value_ptr(projection));
@@ -355,10 +357,10 @@ int main() {
 				glActiveTexture(GL_TEXTURE0);
 				glUniformMatrix4fv(modelMat, 1, GL_FALSE, glm::value_ptr(model));
 				glBindTexture(GL_TEXTURE_2D, textureList[(i * j) * 5 % 4].textureID);
-				glUniform1i(glGetUniformLocation(shader1.ID, "ourTexture"), 0);
+				glUniform1i(glGetUniformLocation(shader1.ID, "material.objectTexture"), 0);
 				glActiveTexture(GL_TEXTURE1);//启动一个新的贴图作为镜像反射所需的贴图
 				glBindTexture(GL_TEXTURE_2D, specList[(i * j) * 5 % 4].textureID);
-				glUniform1i(glGetUniformLocation(shader1.ID, "specTexture"), 1);
+				glUniform1i(glGetUniformLocation(shader1.ID, "material.specTexture"), 1);
 				glDrawArrays(GL_TRIANGLES, 0, 256);
 				
 				current_postition.z += 2.0f;
